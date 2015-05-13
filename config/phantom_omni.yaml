@@ -5,9 +5,9 @@ units: mm
 # Workspace [width, depth, height] = [x, y, z]
 hysteresis: 3.0
 workspace:
-  width: 130.0
-  depth: 55.0
-  height: 90.0
+  width: 70.0
+  depth: 70.0
+  height: 70.0
   center: [0, 0, 0]
 # Position parameters
 reference_frame: world
@@ -17,6 +17,11 @@ axes_mapping: [y, -x, z]
 # Force feedback parameters
 k_center: 0.15
 b_center: 0.003
-k_rate: 0.15
+k_rate: 0.02
 b_rate: 0.003
-rate_gain: 0.001
+rate_gain: 0.05
+vibration:
+  a: 1.0
+  c: 5.0
+  frequency: 30.0
+  duration: 0.3

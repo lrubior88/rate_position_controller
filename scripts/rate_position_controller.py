@@ -194,7 +194,7 @@ class RatePositionController:
   def rate_control(user_data, self):
     if not self.inside_workspace(self.master_pos):
       # Send the force feedback to the master
-      self.force_feedback = (self.k_rate * self.master_pos + self.b_rate * self.master_vel) * -1.0
+      self.force_feedback = (self.k_rate * self.master_pos + self.b_rate * self.master_vel) * -1.0 
       # Send the rate command to the slave
       distance = sqrt(np.sum((self.master_pos - self.rate_pivot) ** 2)) / self.position_ratio
       self.command_pos += (self.rate_gain * distance * self.normalize_vector(self.master_pos)) / self.position_ratio

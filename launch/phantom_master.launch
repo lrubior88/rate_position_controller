@@ -3,9 +3,8 @@
   <arg name="slave_name" default="grips"/>
   <arg name="ref_frame" default="world"/>
   <arg name="rpy_offset" default="[0, 0, 0]"/>
-<!--
-  -1.5708
--->
+  <arg name="rviz" default="true"/>
+
   
   <!-- Phantom node -->
   <node name="omni_state" pkg="omni_common" type="omni_state" output="screen"> 
@@ -20,7 +19,13 @@
     <param name="slave_name" type="string" value="$(arg slave_name)"/>
     <param name="master_name" type="string" value="$(arg master_name)"/>
     <param name="reference_frame" type="string" value="$(arg ref_frame)"/>
+    <remap from="$(arg slave_name)/state" to="/grips/endpoint_state"/>
     <rosparam param="rpy_offset" subst_value="True">$(arg rpy_offset)</rosparam>
     <rosparam command="load" file="$(find rate_position_controller)/config/phantom_omni.yaml" />
   </node>
+  
+  <!-- Show in Rviz -->
+  <group if="$(arg rviz)">
+    <node name="rviz" pkg="rviz" type="rviz" output="screen" args="-d $(find grips_teleop)/config/cartesian_controller.rviz"/>
+  </group>
 </launch>
