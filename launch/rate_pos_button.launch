@@ -2,11 +2,11 @@
 <launch>
   <arg name="master_name" default="phantom"/>
   <arg name="slave_name" default="grips"/>
-  <arg name="ref_frame" default="world"/>
+  <arg name="ref_frame" default="base_link"/>
   <arg name="rviz" default="true"/>
   
   <!-- Phantom node -->
-  <node name="omni_state" pkg="omni_common" type="omni_state" output="screen"> 
+  <node name="omni_state2" pkg="omni_common" type="omni_state2" output="screen"> 
     <param name="omni_name" type="string" value="$(arg master_name)"/>
     <param name="publish_rate" type="double" value="250"/>
     <rosparam command="load" file="$(find rate_position_controller)/config/phantom_rate_button.yaml" />

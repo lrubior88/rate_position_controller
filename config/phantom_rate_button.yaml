@@ -20,4 +20,6 @@ b_center: 0.003
 k_rate: 0.02
 b_rate: 0.003
 rate_gain: 0.001
-
+# Rotation between master and slave end efector
+axes_rotation: [-1, 0, 0]
+angle_rotation: 1.570796

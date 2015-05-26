@@ -78,7 +78,6 @@ class RatePositionButtonController:
     self.ik_mc_topic = '/%s/ik_command' % slave_name
     self.gripper_topic = '/%s/GRIP/command' % slave_name
     self.button_topic = '/%s/button' % master_name
-    self.master_joint_states_topic = '/%s/joint_states' % master_name
 
     # Force feedback parameters
     self.k_center = self.read_parameter('~k_center', 0.1)
@@ -91,6 +90,8 @@ class RatePositionButtonController:
     self.pivot_dist = self.read_parameter('~pivot_dist', 5.0)
     self.publish_frequency = self.read_parameter('~publish_rate', 1000.0)
     self.position_ratio = self.read_parameter('~position_ratio', 250)
+    self.axes_rotation = self.read_parameter('~axes_rotation', [0, 0, 0])
+    self.angle_rotation = self.read_parameter('~angle_rotation', 1.570796)
     self.position_axes = [0, 1, 2]
     self.position_sign = np.array([1.0, 1.0, 1.0])
     self.axes_mapping = self.read_parameter('~axes_mapping', ['x', 'y' ,'z'])
@@ -148,13 +149,14 @@ class RatePositionButtonController:
     self.buttons[WHITE_BUTTON] = True
     
     # Setup Subscribers/Publishers
+    self.aux_pose_pub = rospy.Publisher("/aux_pose", PoseStamped)
+    
     self.feedback_pub = rospy.Publisher(self.feedback_topic, OmniFeedback)
     self.ik_mc_pub = rospy.Publisher(self.ik_mc_topic, PoseStamped)
     self.gripper_pub = rospy.Publisher(self.gripper_topic, Float64)
     rospy.Subscriber(self.master_state_topic, OmniState, self.cb_master_state)
     rospy.Subscriber(self.slave_state_topic, EndpointState, self.cb_slave_state)
     rospy.Subscriber(self.button_topic, OmniButtonEvent, self.buttons_cb)
-    rospy.Subscriber(self.master_joint_states_topic, JointState, self.joint_states_cb)
     
     self.loginfo('Waiting for [%s] and [%s] topics' % (self.master_state_topic, self.slave_state_topic))
     while not rospy.is_shutdown():
@@ -194,10 +196,7 @@ class RatePositionButtonController:
   def position_control(user_data, self):
     if self.buttons[WHITE_BUTTON]:
       self.command_pos = self.slave_synch_pos + self.master_pos / self.position_ratio
-      # TODO: Rotations are driving me crazy! 
-      relative_rot = tr.quaternion_multiply(self.master_synch_rot, tr.quaternion_inverse(self.master_rot))
-      self.command_rot = tr.quaternion_multiply(self.slave_synch_rot, relative_rot)
-      #~ self.command_rot = np.array(self.master_rot)
+      self.command_rot = np.array(self.master_rot)
       return 'stay'
     else:
       self.force_feedback = np.zeros(3)
@@ -229,8 +228,7 @@ class RatePositionButtonController:
       # Send the rate command to the slave
       distance = sqrt(np.sum((self.master_pos - self.rate_pivot) ** 2)) / self.position_ratio * 70
       self.command_pos += (self.rate_gain * distance * self.normalize_vector(self.master_pos)) / self.position_ratio
-      relative_rot = tr.quaternion_multiply(self.master_synch_rot, tr.quaternion_inverse(self.master_rot))
-      self.command_rot = tr.quaternion_multiply(self.slave_synch_rot, relative_rot)
+      self.command_rot = np.array(self.master_rot)
       return 'stay'
     else:
       self.command_pos = np.array(self.slave_pos)
@@ -302,8 +300,24 @@ class RatePositionButtonController:
     vel = np.array([msg.velocity.x, msg.velocity.y, msg.velocity.z])
     self.master_pos = self.change_axes(pos)
     self.master_vel = self.change_axes(vel)
-    self.master_rot = np.array([msg.pose.orientation.x, msg.pose.orientation.y, msg.pose.orientation.z, msg.pose.orientation.w])
+    
+    # Rotate tu use the same axes orientation between master and slave
+    real_rot = np.array([msg.pose.orientation.x, msg.pose.orientation.y, msg.pose.orientation.z, msg.pose.orientation.w])
+    q = tr.quaternion_about_axis(self.angle_rotation, self.axes_rotation)
+    self.master_rot = tr.quaternion_multiply(real_rot, q)
+    #~ self.master_rot = np.array([msg.pose.orientation.x, msg.pose.orientation.y, msg.pose.orientation.z, msg.pose.orientation.w])
     self.master_dir = self.normalize_vector(self.master_vel)
+    
+    # Discomment for debugging
+    #~ aux_msg = PoseStamped()
+    #~ aux_msg.header.frame_id = self.frame_id
+    #~ aux_msg.header.stamp = rospy.Time.now()
+    #~ aux_msg.pose.position = Point(*self.master_pos)
+    #~ aux_msg.pose.position.x /= 1000.0;
+    #~ aux_msg.pose.position.y /= 1000.0;
+    #~ aux_msg.pose.position.z /= 1000.0;
+    #~ aux_msg.pose.orientation = Quaternion(*self.master_rot)
+    #~ self.aux_pose_pub.publish(aux_msg) 
   
   def cb_slave_state(self, msg):
     self.slave_pos = np.array([msg.pose.position.x, msg.pose.position.y, msg.pose.position.z])
@@ -321,10 +335,6 @@ class RatePositionButtonController:
     else:                           # Open
       self.gripper_cmd = -GRIPPER_RATIO
     self.gripper_pub.publish(Float64(self.gripper_cmd))
-  
-  def joint_states_cb(self, msg):
-    idx = msg.name.index('roll')
-    self.roll_angle = -msg.position[idx]
         
   def publish_command(self, event):
     position, orientation = self.command_pos, self.command_rot
@@ -333,10 +343,7 @@ class RatePositionButtonController:
     ik_mc_msg.header.stamp = rospy.Time.now()
     ik_mc_msg.pose.position = Point(*position)
     # Orientation
-    #~ ik_mc_msg.pose.orientation = Quaternion(*orientation)
-    q_roll = PyKDL.Rotation.RotZ(self.roll_angle)
-    q = (self.q0 * q_roll).GetQuaternion()
-    ik_mc_msg.pose.orientation = Quaternion(q[0], q[1], q[2], q[3])
+    ik_mc_msg.pose.orientation = Quaternion(*orientation)
     
     try:
       self.ik_mc_pub.publish(ik_mc_msg)
