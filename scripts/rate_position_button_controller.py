@@ -135,8 +135,8 @@ class RatePositionButtonController:
     self.slave_rot = np.array([0, 0, 0, 1])
     self.timer = None
     self.force_feedback = np.zeros(3)
-    self.roll_angle = 0
-    self.q0 = PyKDL.Rotation.Quaternion(-math.sqrt(2)/2.0, 0.0, 0.0, math.sqrt(2)/2.0)
+    #~ self.roll_angle = 0
+    #~ self.q0 = PyKDL.Rotation.Quaternion(-math.sqrt(2)/2.0, 0.0, 0.0, math.sqrt(2)/2.0)
     
     # Synch
     self.slave_synch_pos = np.zeros(3)
@@ -149,8 +149,7 @@ class RatePositionButtonController:
     self.buttons[WHITE_BUTTON] = True
     
     # Setup Subscribers/Publishers
-    self.aux_pose_pub = rospy.Publisher("/aux_pose", PoseStamped)
-    
+    #~ self.aux_pose_pub = rospy.Publisher("/aux_pose", PoseStamped)
     self.feedback_pub = rospy.Publisher(self.feedback_topic, OmniFeedback)
     self.ik_mc_pub = rospy.Publisher(self.ik_mc_topic, PoseStamped)
     self.gripper_pub = rospy.Publisher(self.gripper_topic, Float64)
@@ -282,7 +281,7 @@ class RatePositionButtonController:
       sign = self.position_sign
     result = np.zeros(len(array))
     for i, idx in enumerate(index):
-      result[i] = array[idx] * sign[i]
+      result[i] = array[idx] * sign[i] #~ ??
     return result
   
   def send_feedback(self):
@@ -305,7 +304,6 @@ class RatePositionButtonController:
     real_rot = np.array([msg.pose.orientation.x, msg.pose.orientation.y, msg.pose.orientation.z, msg.pose.orientation.w])
     q = tr.quaternion_about_axis(self.angle_rotation, self.axes_rotation)
     self.master_rot = tr.quaternion_multiply(real_rot, q)
-    #~ self.master_rot = np.array([msg.pose.orientation.x, msg.pose.orientation.y, msg.pose.orientation.z, msg.pose.orientation.w])
     self.master_dir = self.normalize_vector(self.master_vel)
     
     # Discomment for debugging
@@ -342,7 +340,6 @@ class RatePositionButtonController:
     ik_mc_msg.header.frame_id = self.frame_id
     ik_mc_msg.header.stamp = rospy.Time.now()
     ik_mc_msg.pose.position = Point(*position)
-    # Orientation
     ik_mc_msg.pose.orientation = Quaternion(*orientation)
     
     try:
