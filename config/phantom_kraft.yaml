@@ -1,0 +1,31 @@
+# publish_rate in Hz
+publish_rate: 1000.0
+# Possible units: [mm, cm, m]
+units: mm
+# Workspace [width, depth, height] = [x, y, z]
+hysteresis: 3.0
+workspace:
+  width: 120.0
+  depth: 100.0
+  height: 55.0
+  center: [0, 0, 0]
+# Position parameters
+reference_frame: world
+position_ratio: 250
+pivot_dist: 5.0
+axes_mapping: [x, y, z]
+# Force feedback parameters
+k_center: 0.15
+b_center: 0.003
+k_rate: 0.02
+b_rate: 0.003
+rate_gain: 0.05
+vibration:
+  a: 1.0
+  c: 5.0
+  frequency: 30.0
+  duration: 0.3
+# Rotation between master and slave end efector
+axes_rotation: [-1, 0, 0]
+#~ angle_rotation: 1.570796
+angle_rotation: 0.0
