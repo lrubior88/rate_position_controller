@@ -18,6 +18,7 @@ from baxter_core_msgs.msg import EndpointState
 from omni_msgs.msg import OmniState, OmniFeedback, OmniButtonEvent
 from geometry_msgs.msg import Vector3, Point, PoseStamped, Quaternion, Wrench, Transform, PoseStamped
 from visualization_msgs.msg import Marker
+from std_msgs.msg import Bool
 # State Machine
 import smach
 import smach_ros
@@ -77,6 +78,7 @@ class RatePositionController:
     self.ik_mc_topic = '/%s/ik_command' % slave_name
     self.gripper_topic = '/%s/GRIP/command' % slave_name
     self.button_topic = '/%s/button' % master_name
+    self.slave_collision_topic = '/%s/collision' % slave_name
         
     # Workspace definition
     self.units = self.read_parameter('~units', 'mm')
@@ -142,6 +144,7 @@ class RatePositionController:
     self.master_dir = np.zeros(3)
     self.slave_pos = None
     self.slave_rot = np.array([0, 0, 0, 1])
+    self.slave_collision = False
     self.timer = None
     self.force_feedback = np.zeros(3)
     
@@ -162,6 +165,7 @@ class RatePositionController:
     self.vis_pub = rospy.Publisher('visualization_marker', Marker)
     rospy.Subscriber(self.master_state_topic, OmniState, self.cb_master_state)
     rospy.Subscriber(self.slave_state_topic, EndpointState, self.cb_slave_state)
+    rospy.Subscriber(self.slave_collision_topic, Bool, self.cb_slave_collision)
     rospy.Subscriber(self.button_topic, OmniButtonEvent, self.buttons_cb)
     
     self.loginfo('Waiting for [%s] and [%s] topics' % (self.master_state_topic, self.slave_state_topic))
@@ -230,23 +234,31 @@ class RatePositionController:
   
   @smach.cb_interface(outcomes=['stay', 'leave', 'collision', 'aborted'])
   def rate_control(user_data, self):
-    if not self.inside_workspace(self.master_pos):
-      # Send the force feedback to the master
-      self.force_feedback = (self.k_rate * self.master_pos + self.b_rate * self.master_vel) * -1.0 
-      # Send the rate command to the slave
-      distance = sqrt(np.sum((self.master_pos - self.rate_pivot) ** 2)) / self.position_ratio
-      self.command_pos += (self.rate_gain * distance * self.normalize_vector(self.master_pos)) / self.position_ratio
-      self.command_rot = np.array(self.master_rot)
-      return 'stay'
+    if not self.slave_collision:
+        if not self.inside_workspace(self.master_pos):
+          # Send the force feedback to the master
+          self.force_feedback = (self.k_rate * self.master_pos + self.b_rate * self.master_vel) * -1.0 
+          # Send the rate command to the slave
+          distance = sqrt(np.sum((self.master_pos - self.rate_pivot) ** 2)) / self.position_ratio
+          self.command_pos += (self.rate_gain * distance * self.normalize_vector(self.master_pos)) / self.position_ratio
+          self.command_rot = np.array(self.master_rot)
+          return 'stay'
+        else:
+          self.command_pos = np.array(self.slave_pos)
+          self.command_rot = np.array(self.slave_rot)
+          self.force_feedback = np.zeros(3)
+          self.loginfo('State machine transitioning: RATE_CONTROL:leave-->GO_TO_CENTER')
+          return 'leave'
     else:
-      self.command_pos = np.array(self.slave_pos)
-      self.command_rot = np.array(self.slave_rot)
-      self.force_feedback = np.zeros(3)
-      self.loginfo('State machine transitioning: RATE_CONTROL:leave-->GO_TO_CENTER')
-      return 'leave'
+        self.command_pos = np.array(self.slave_pos)
+        self.command_rot = np.array(self.slave_rot)
+        self.force_feedback = np.zeros(3)
+        self.loginfo('State machine transitioning: RATE_CONTROL:collision-->RATE_COLLISION')
+        return 'collision'
     
   @smach.cb_interface(outcomes=['succeeded', 'aborted'])
   def rate_collision(user_data, self):
+    self.loginfo('State machine transitioning: RATE_COLLISION:succeeded-->GO_TO_CENTER')
     return 'succeeded'
   
   def execute(self):
@@ -322,6 +334,9 @@ class RatePositionController:
   def cb_slave_state(self, msg):
     self.slave_pos = np.array([msg.pose.position.x, msg.pose.position.y, msg.pose.position.z])
     self.slave_rot = np.array([msg.pose.orientation.x, msg.pose.orientation.y, msg.pose.orientation.z, msg.pose.orientation.w])
+    
+  def cb_slave_collision(self, msg):
+    self.slave_collision = msg.data
   
   def buttons_cb(self, msg):
     button_states = [msg.grey_button, msg.white_button]

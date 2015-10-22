@@ -24,6 +24,10 @@
     <rosparam command="load" file="$(find rate_position_controller)/config/phantom_kraft.yaml" />
   </node>
   
+  <!-- Obstacle collision node -->
+  <node name="virtual_obstacles" pkg="rate_position_controller" type="virtual_obstacles.py" output="screen"> 
+  </node>
+  
   <!-- Show in Rviz -->
   <group if="$(arg rviz)">
     <node name="rviz" pkg="rviz" type="rviz" output="screen" args="-d $(find grips_teleop)/config/cartesian_controller.rviz"/>
