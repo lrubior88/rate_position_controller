@@ -5,9 +5,9 @@ units: mm
 # Workspace [width, depth, height] = [x, y, z]
 hysteresis: 3.0
 workspace:
-  width: 60.0
-  depth: 60.0
-  height: 60.0
+  width: 100.0
+  depth: 100.0
+  height: 100.0
   center: [0, 0, 0]
 # Position parameters
 reference_frame: world

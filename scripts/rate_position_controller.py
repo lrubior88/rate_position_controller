@@ -79,6 +79,7 @@ class RatePositionController:
     self.gripper_topic = '/%s/GRIP/command' % slave_name
     self.button_topic = '/%s/button' % master_name
     self.slave_collision_topic = '/%s/collision' % slave_name
+    self.ext_forces_topic = '/%s/external_forces' % slave_name
         
     # Workspace definition
     self.units = self.read_parameter('~units', 'mm')
@@ -147,6 +148,7 @@ class RatePositionController:
     self.slave_collision = False
     self.timer = None
     self.force_feedback = np.zeros(3)
+    self.ext_forces = np.zeros(3)
     
     # Synch
     self.slave_synch_pos = np.zeros(3)
@@ -166,7 +168,9 @@ class RatePositionController:
     rospy.Subscriber(self.master_state_topic, OmniState, self.cb_master_state)
     rospy.Subscriber(self.slave_state_topic, EndpointState, self.cb_slave_state)
     rospy.Subscriber(self.slave_collision_topic, Bool, self.cb_slave_collision)
+    rospy.Subscriber(self.ext_forces_topic, OmniFeedback, self.cb_ext_forces)
     rospy.Subscriber(self.button_topic, OmniButtonEvent, self.buttons_cb)
+    
     
     self.loginfo('Waiting for [%s] and [%s] topics' % (self.master_state_topic, self.slave_state_topic))
     while not rospy.is_shutdown():
@@ -183,6 +187,7 @@ class RatePositionController:
     self.command_rot = np.array(self.slave_rot)
     
     # Start the timer that will publish the ik commands
+    self.loginfo('Publisher frequency: [%f]' % self.publish_frequency)
     self.timer = rospy.Timer(rospy.Duration(1.0/self.publish_frequency), self.publish_command)
     
     self.loginfo('State machine state: GO_TO_CENTER')
@@ -208,6 +213,7 @@ class RatePositionController:
     if self.inside_workspace(self.master_pos):
       self.command_pos = self.slave_synch_pos + self.master_pos / self.position_ratio
       self.command_rot = np.array(self.master_rot)
+      self.force_feedback = self.ext_forces
       return 'stay'
     else:
       self.force_feedback = np.zeros(3)
@@ -337,6 +343,9 @@ class RatePositionController:
     
   def cb_slave_collision(self, msg):
     self.slave_collision = msg.data
+    
+  def cb_ext_forces(self, msg):
+	self.ext_forces = np.array([msg.force.x, msg.force.y, msg.force.z])
   
   def buttons_cb(self, msg):
     button_states = [msg.grey_button, msg.white_button]

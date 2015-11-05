@@ -15,7 +15,7 @@
   
   <!-- Rate position controller -->
   <node name="rate_position_controller" pkg="rate_position_controller" type="rate_position_controller.py" output="screen">
-    <param name="publish_rate" type="double" value="100"/>
+    <param name="publish_rate" type="double" value="1000"/>
     <param name="slave_name" type="string" value="$(arg slave_name)"/>
     <param name="master_name" type="string" value="$(arg master_name)"/>
     <param name="reference_frame" type="string" value="$(arg ref_frame)"/>

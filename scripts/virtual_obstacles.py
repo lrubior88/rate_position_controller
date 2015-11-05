@@ -5,6 +5,8 @@ import rospy
 from visualization_msgs.msg import Marker
 from baxter_core_msgs.msg import EndpointState
 from std_msgs.msg import Bool
+from omni_msgs.msg import OmniFeedback
+from geometry_msgs.msg import Vector3
 #Math
 import numpy as np
 
@@ -31,9 +33,9 @@ class VirtualObstacles:
       
     # Topics to interact
     slave_name = self.read_parameter('~slave_name', 'grips')
+    self.ext_forces_topic = '/%s/external_forces' % slave_name
     self.collision_topic = '/%s/collision' % slave_name
     self.slave_state_topic = '/%s/endpoint_state' % slave_name
-    #~ self.feedback_topic = '/%s/force_feedback' % master_name
     
     # Initial values      
     self.slave_pos = None
@@ -41,9 +43,12 @@ class VirtualObstacles:
     self.publish_frequency = self.read_parameter('~publish_rate', 1000.0)
     self.colors = TextColors()
     self.timer = None
-    self.is_drawn = False
+    #~ self.is_drawn = False
+    self.external_forces = np.zeros(3)
+    self.k_prop = 30
           
     # Setup Subscribers/Publishers
+    self.ext_forces_pub = rospy.Publisher(self.ext_forces_topic, OmniFeedback)
     self.collision_pub = rospy.Publisher(self.collision_topic, Bool)
     self.vis_pub = rospy.Publisher('/vis_obstacles', Marker)
     rospy.Subscriber(self.slave_state_topic, EndpointState, self.cb_slave_state)
@@ -59,7 +64,7 @@ class VirtualObstacles:
         break
         
     # Draw obstacles
-    rospy.sleep(0.5)
+    rospy.sleep(3.0)
     self.draw_obstacle()
     
     # Start the timer that will publish the ik commands
@@ -82,16 +87,26 @@ class VirtualObstacles:
     
   def inside_obstacle(self, point):
     if ((point[0]>0.5) and (point[0]<1)):
+        self.external_forces[0] = -self.k_prop * (point[0] - 0.5)
         return True
     else:
+        self.external_forces = np.zeros(3)
         return False
+        
+  def send_forces(self):
+    feedback_msg = OmniFeedback()
+    feedback_msg.force = Vector3(*self.external_forces)
+    feedback_msg.position = Vector3(*self.slave_pos)
+    self.ext_forces_pub.publish(feedback_msg) 
           
   def loginfo(self, msg):
     rospy.logwarn(self.colors.OKBLUE + str(msg) + self.colors.ENDC)
         
   def publish_collision(self, event):
+    #~ self.draw_obstacle()
     try:
       self.collision_pub.publish(self.inside_obstacle(self.slave_pos))
+      self.send_forces()
     except rospy.exceptions.ROSException:
       pass
     
