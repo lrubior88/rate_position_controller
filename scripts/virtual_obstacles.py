@@ -45,7 +45,7 @@ class VirtualObstacles:
     self.timer = None
     #~ self.is_drawn = False
     self.external_forces = np.zeros(3)
-    self.k_prop = 30
+    self.k_prop = 10
           
     # Setup Subscribers/Publishers
     self.ext_forces_pub = rospy.Publisher(self.ext_forces_topic, OmniFeedback)
@@ -86,8 +86,8 @@ class VirtualObstacles:
     return rospy.get_param(name, default)
     
   def inside_obstacle(self, point):
-    if ((point[0]>0.5) and (point[0]<1)):
-        self.external_forces[0] = -self.k_prop * (point[0] - 0.5)
+    if ((point[0]>0.5)):
+        self.external_forces[0] = self.k_prop * (0.5 - point[0])
         return True
     else:
         self.external_forces = np.zeros(3)
