@@ -2,9 +2,9 @@
 <launch>
   
   <!-- Hardware Interface -->
-  <node name="send_tcp_pose" pkg="rate_position_controller" type="send_tcp_pose.py" output="screen"> 
+  <node name="send_udp_pose" pkg="rate_position_controller" type="send_udp_pose.py" output="screen"> 
     <param name="write_ip" type="string" value="127.0.0.1 "/>
-    <param name="write_port" type="int" value="5052"/>
+    <param name="write_port" type="int" value="17721"/>
     <param name="publish_rate" type="double" value="1000.0" />
   </node>
   

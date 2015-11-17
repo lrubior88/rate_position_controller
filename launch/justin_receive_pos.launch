@@ -1,10 +1,12 @@
 <?xml version="1.0"?>
+
 <launch>
-  
+  <arg name="ref_frame" default="world"/>
   <!-- Hardware Interface -->
-  <node name="receive_tcp_pose" pkg="rate_position_controller" type="receive_tcp_pose.py" output="screen"> 
-    <param name="write_ip" type="string" value="127.0.0.1 "/>
-    <param name="read_port" type="int" value="5052"/>
+  <node name="receive_udp_pose" pkg="rate_position_controller" type="receive_udp_pose.py" output="screen"> 
+    <param name="read_ip" type="string" value="127.0.0.1 "/>
+    <param name="read_port" type="int" value="17720"/>
+        <param name="reference_frame" type="string" value="$(arg ref_frame)"/>
     <param name="publish_rate" type="double" value="1000.0" />
   </node>
   
