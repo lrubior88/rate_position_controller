@@ -13,7 +13,7 @@ workspace:
 reference_frame: world
 position_ratio: 250
 pivot_dist: 5.0
-axes_mapping: [x, y, z]
+axes_mapping: [-y, x, z]
 # Force feedback parameters
 k_center: 0.15
 b_center: 0.003
@@ -25,21 +25,11 @@ vibration:
   c: 5.0
   frequency: 30.0
   duration: 0.3
-  
-# Rotation parameter to synchronize rotation axis
-axes_arot_1: [-1, 0, 0]
-angle_arot_1: 1.570796
-axes_arot_2: [0, -1, 0]
-angle_arot_2: 0.0
-axes_arot_3: [-1, 0, 0]
-angle_arot_3: 0.0
-
-# Rotation parameter to synchronize rotation movement
-axes_mrot_1: [1, 0, 0]
-angle_mrot_1: 1.570796
-axes_mrot_2: [0, -1, 0]
-angle_mrot_2: 0.0
-axes_mrot_3: [-1, 0, 0]
-angle_mrot_3: 0.0
-
-#~ angle_rotation: 1.570796
+# Rotation between master and slave end efector
+axes_rotation_1: [1, -0, 0]
+angle_rotation_1: 3.14
+#~ angle_rotation_1: 1.570796
+axes_rotation_2: [0, -1, 0]
+angle_rotation_2: 1.570796
+axes_rotation_3: [-1, 0, 0]
+angle_rotation_3: 0.0
