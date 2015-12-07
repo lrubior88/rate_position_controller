@@ -1,0 +1,53 @@
+
+<launch>
+	
+  <arg name="master_name" default="phantom"/>
+  <arg name="slave_name" default="justin"/>
+  <arg name="ref_frame" default="world"/>
+  <arg name="mode_name" default="a"/>    <!-- Mode: a, b , c -->
+  <arg name="rpy_offset" default="[0, 0, 0]"/>
+  <arg name="rviz" default="true"/>
+
+  
+<!-- Phantom node -->
+  <node name="omni_state2" pkg="omni_common" type="omni_state2" output="screen"> 
+    <param name="omni_name" type="string" value="$(arg master_name)"/>
+    <param name="publish_rate" type="double" value="1000"/>
+    <rosparam command="load" file="$(find rate_position_controller)/config/phantom_justin.yaml" />
+  </node>
+<!-- Rate position controller -->
+  <node name="rate_pos_controller" pkg="rate_position_controller" type="rate_pos_controller.py" output="screen">
+    <param name="publish_rate" type="double" value="1000"/>
+    <param name="slave_name" type="string" value="$(arg slave_name)"/>
+    <param name="master_name" type="string" value="$(arg master_name)"/>
+    <param name="reference_frame" type="string" value="$(arg ref_frame)"/>
+    <rosparam param="rpy_offset" subst_value="True">$(arg rpy_offset)</rosparam>
+    <rosparam command="load" file="$(find rate_position_controller)/config/phantom_justin.yaml" />
+  </node>
+  
+  <!-- Force handler node -->
+<!--
+  <node name="force_handler" pkg="rate_position_controller" type="force_handler.py" output="screen"> 
+    <param name="publish_rate" type="double" value="1000"/>
+    <param name="slave_name" type="string" value="$(arg slave_name)"/>
+    <param name="master_name" type="string" value="$(arg master_name)"/>
+    <param name="reference_frame" type="string" value="$(arg ref_frame)"/>
+    <rosparam command="load" file="$(find rate_position_controller)/config/phantom_justin.yaml" />
+  </node>
+-->
+
+  <!-- Strategies node -->
+  <node name="strategies" pkg="rate_position_controller" type="strategies.py" output="screen"> 
+    <param name="slave_name" type="string" value="$(arg slave_name)"/>
+    <param name="master_name" type="string" value="$(arg master_name)"/>
+    <param name="mode_name" type="string" value="$(arg mode_name)"/>
+  </node>
+
+  <include file="$(find rate_position_controller)/launch/justin_receive_pos.launch">
+  </include>
+  
+  <!-- Show in Rviz -->
+  <group if="$(arg rviz)">
+    <node name="rviz" pkg="rviz" type="rviz" output="screen" args="-d $(find rate_position_controller)/launch/phantom_justin.rviz"/>
+  </group>
+</launch>
