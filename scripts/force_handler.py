@@ -54,10 +54,10 @@ class Force_handler:
     self.position_axes = [0, 1, 2]
     self.position_sign = np.array([1.0, 1.0, 1.0])
     self.axes_mapping = self.read_parameter('~axes_mapping', ['x', 'y' ,'z'])
-
-    rospy.logwarn('axes_mapping[0] -> %s' % self.axes_mapping[0])
-    rospy.logwarn('axes_mapping[1] -> %s' % self.axes_mapping[1])
-    rospy.logwarn('axes_mapping[2] -> %s' % self.axes_mapping[2])
+#~ 
+    #~ rospy.logwarn('axes_mapping[0] -> %s' % self.axes_mapping[0])
+    #~ rospy.logwarn('axes_mapping[1] -> %s' % self.axes_mapping[1])
+    #~ rospy.logwarn('axes_mapping[2] -> %s' % self.axes_mapping[2])
 
     if len(self.axes_mapping) != 3:
       rospy.logwarn('The invalid number of values in [axes_mapping]. Received 3, expected %d' % len(self.axes_mapping))
@@ -88,7 +88,9 @@ class Force_handler:
     self.sm_control = 1.0
     self.k_prop = 2
     self.master_real_pos = np.zeros(3)
+    self.master_pos = np.zeros(3)
     self.center_pos = np.zeros(3)
+    self.master_vel = np.zeros(3)
     #Timer for publish forces
     self.timer = rospy.Timer(rospy.Duration(1.0/self.publish_frequency), self.publish_force)
 
@@ -134,7 +136,8 @@ class Force_handler:
         self.force_feedback = np.zeros(3)
 
      feedback_msg = OmniFeedback()
-     force = self.change_force_axes(self.force_feedback)
+     #~ force = self.change_force_axes(self.force_feedback)
+     force = self.force_feedback
      pos = self.change_axes(self.center_pos)
      feedback_msg.force = Vector3(*force)
      feedback_msg.position = Vector3(*pos)
