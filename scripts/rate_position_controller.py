@@ -104,8 +104,12 @@ class RatePositionController:
     self.pivot_dist = self.read_parameter('~pivot_dist', 5.0)
     self.publish_frequency = self.read_parameter('~publish_rate', 1000.0)
     self.position_ratio = self.read_parameter('~position_ratio', 250)
-    self.axes_rotation = self.read_parameter('~axes_rotation', [0, 0, 0])
-    self.angle_rotation = self.read_parameter('~angle_rotation', 1.570796)
+    self.axes_rotation_1 = self.read_parameter('~axes_rotation_1', [0, 0, 0])
+    self.angle_rotation_1 = self.read_parameter('~angle_rotation_1',0.0)
+    self.axes_rotation_2 = self.read_parameter('~axes_rotation_2', [0, 0, 0])
+    self.angle_rotation_2 = self.read_parameter('~angle_rotation_2', 0.0)
+    self.axes_rotation_3 = self.read_parameter('~axes_rotation_3', [0, 0, 0])
+    self.angle_rotation_3 = self.read_parameter('~angle_rotation_3', 0.0)
     self.position_axes = [0, 1, 2]
     self.position_sign = np.array([1.0, 1.0, 1.0])
     self.axes_mapping = self.read_parameter('~axes_mapping', ['x', 'y' ,'z'])
@@ -172,10 +176,12 @@ class RatePositionController:
     self.gripper_pub = rospy.Publisher(self.gripper_topic, Float64)
     self.vis_pub = rospy.Publisher('visualization_marker', Marker)
     rospy.Subscriber(self.master_state_topic, OmniState, self.cb_master_state)
-    rospy.Subscriber(self.slave_state_topic, EndpointState, self.cb_slave_state)
+    rospy.Subscriber(self.slave_state_topic, PoseStamped, self.cb_slave_state)
     rospy.Subscriber(self.slave_collision_topic, Bool, self.cb_slave_collision)
     #~ rospy.Subscriber(self.ext_forces_topic, OmniFeedback, self.cb_ext_forces)  ##
     rospy.Subscriber(self.button_topic, OmniButtonEvent, self.buttons_cb)
+    
+   
 
 
     self.loginfo('Waiting for [%s] and [%s] topics' % (self.master_state_topic, self.slave_state_topic))
@@ -350,10 +356,15 @@ class RatePositionController:
 
     # Rotate tu use the same axes orientation between master and slave
     real_rot = np.array([msg.pose.orientation.x, msg.pose.orientation.y, msg.pose.orientation.z, msg.pose.orientation.w])
-    q = tr.quaternion_about_axis(self.angle_rotation, self.axes_rotation)
-    self.master_rot = tr.quaternion_multiply(real_rot, q)
+    q_1 = tr.quaternion_about_axis(self.angle_rotation_1, self.axes_rotation_1)
+    aux_rot = tr.quaternion_multiply(q_1, real_rot)
+    q_2 = tr.quaternion_about_axis(self.angle_rotation_2, self.axes_rotation_2)
+    aux_rot_2 = tr.quaternion_multiply(q_2, aux_rot)
+    q_3 = tr.quaternion_about_axis(self.angle_rotation_3, self.axes_rotation_3)
+    self.master_rot = tr.quaternion_multiply(q_3, aux_rot_2)
+    
+    #Normalize velocitity
     self.master_dir = self.normalize_vector(self.master_vel)
-
   def cb_slave_state(self, msg):
     self.slave_pos = np.array([msg.pose.position.x, msg.pose.position.y, msg.pose.position.z])
     self.slave_rot = np.array([msg.pose.orientation.x, msg.pose.orientation.y, msg.pose.orientation.z, msg.pose.orientation.w])
