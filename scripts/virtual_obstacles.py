@@ -5,8 +5,9 @@ import rospy
 from visualization_msgs.msg import Marker
 from baxter_core_msgs.msg import EndpointState
 from std_msgs.msg import Bool
-from omni_msgs.msg import OmniFeedback
+from omni_msgs.msg import OmniState, OmniFeedback, OmniButtonEvent
 from geometry_msgs.msg import Vector3
+
 #Math
 import numpy as np
 
@@ -33,25 +34,32 @@ class VirtualObstacles:
       
     # Topics to interact
     slave_name = self.read_parameter('~slave_name', 'grips')
+    master_name = self.read_parameter('~master_name', 'phantom')
     self.ext_forces_topic = '/%s/external_forces' % slave_name
     self.collision_topic = '/%s/collision' % slave_name
     self.slave_state_topic = '/%s/endpoint_state' % slave_name
+    self.master_state_topic = '/%s/state' % master_name 
+    
     
     # Initial values      
     self.slave_pos = None
+    self.master_pos = None
+    self.slave_rot = None
+    self.master_rot = None
     self.frame_id = self.read_parameter('~reference_frame', 'world')
     self.publish_frequency = self.read_parameter('~publish_rate', 1000.0)
     self.colors = TextColors()
     self.timer = None
     #~ self.is_drawn = False
     self.external_forces = np.zeros(3)
-    self.k_prop = 10
+    self.k_prop = 30
           
     # Setup Subscribers/Publishers
     self.ext_forces_pub = rospy.Publisher(self.ext_forces_topic, OmniFeedback)
     self.collision_pub = rospy.Publisher(self.collision_topic, Bool)
     self.vis_pub = rospy.Publisher('/vis_obstacles', Marker)
     rospy.Subscriber(self.slave_state_topic, EndpointState, self.cb_slave_state)
+    rospy.Subscriber(self.master_state_topic, OmniState, self.cb_master_state)
     
     self.loginfo('Waiting for [%s] topic' % (self.slave_state_topic))
     while not rospy.is_shutdown():
@@ -74,7 +82,28 @@ class VirtualObstacles:
   
   def cb_slave_state(self, msg):
     self.slave_pos = np.array([msg.pose.position.x, msg.pose.position.y, msg.pose.position.z])
+    
+    #~ dif_state_x= abs(msg.pose.position.x-self.state_before_x)
+    #~ if (dif_state_x < 0.01):
+      #~ state_msg.pose.position.x = self.state_before_x
+    #~ else:
+      #~ self.state_before_x = state_msg.pose.position.x
+#~ 
+    #~ dif_state_y= abs(state_msg.pose.position.y-self.state_before_y)
+    #~ if (dif_state_y < 0.01):
+      #~ state_msg.pose.position.y = self.state_before_y
+    #~ else:
+      #~ self.state_before_y = state_msg.pose.position.y
+ #~ 
+    #~ dif_state_z= abs(state_msg.pose.position.z-self.state_before_z)
+    #~ if (dif_state_z < 0.01):
+      #~ state_msg.pose.position.z = self.state_before_z
+    #~ else:
+      #~ self.state_before_z = state_msg.pose.position.z
     self.slave_rot = np.array([msg.pose.orientation.x, msg.pose.orientation.y, msg.pose.orientation.z, msg.pose.orientation.w])    
+  def cb_master_state(self, msg):
+    self.master_pos = np.array([msg.pose.position.x, msg.pose.position.y, msg.pose.position.z])
+    self.master_rot = np.array([msg.pose.orientation.x, msg.pose.orientation.y, msg.pose.orientation.z, msg.pose.orientation.w])   
       
   def shutdown_hook(self):
     # Stop the publisher timer
