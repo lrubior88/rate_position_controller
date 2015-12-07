@@ -12,6 +12,7 @@ from omni_msgs.msg import OmniFeedback
 import roslib.message
 
 _struct_10d = struct.Struct("<10d")
+_struct_11d = struct.Struct("<11d")
 
 class TextColors:
   HEADER = '\033[95m'
@@ -31,17 +32,23 @@ class TextColors:
 
 class Receive_tcp_pose:
   def __init__(self):
+      
+    # Read all the parameters from the parameter server
+    self.publish_frequency = self.read_parameter('~publish_frequency', 1000.0)    
+    self.frame_id = self.read_parameter('~reference_frame', 'world')
+    slave_name = self.read_parameter('~slave_name', 'justin')
+    self.slave_state_topic = '/%s/state' % slave_name
+    self.ext_forces_topic = '/%s/external_forces' % slave_name
 
     # Setup Subscribers/Publishers
-    self.justin_endpoint_pub = rospy.Publisher("/justin/state", PoseStamped)
-    self.external_force_pub = rospy.Publisher("/justin/external_forces", OmniFeedback)
-    # Read all the parameters from the parameter server
-    self.publish_frequency = self.read_parameter('~publish_frequency', 1000.0)
+    self.justin_endpoint_pub = rospy.Publisher(self.slave_state_topic, PoseStamped)
+    self.external_force_pub = rospy.Publisher(self.ext_forces_topic, OmniFeedback)
+    self.counter_pub = rospy.Publisher('/counter', Float64)
+
     # UDP
     self.read_port = int(self.read_parameter('~read_port', 5051))
     self.read_ip = self.read_parameter('~read_ip', '127.0.0.1')
-    #Reference frame
-    self.frame_id = self.read_parameter('~reference_frame', 'world')
+
     # Set up read socket
     self.read_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     self.read_socket.bind((self.read_ip, self.read_port))
@@ -66,7 +73,7 @@ class Receive_tcp_pose:
             if not data:
                 break
 
-            (pos_x, pos_y, pos_z, rot_x, rot_y, rot_z, rot_w, f_x, f_y, f_z ) = _struct_10d.unpack(data[0:80])
+            (pos_x, pos_y, pos_z, rot_x, rot_y, rot_z, rot_w, f_x, f_y, f_z, counter ) = _struct_11d.unpack(data[0:88])
             cmd_msg = PoseStamped()
             cmd_msg.header.frame_id = self.frame_id
             cmd_msg.header.stamp = rospy.Time.now()
@@ -90,6 +97,7 @@ class Receive_tcp_pose:
             #~ rospy.loginfo('rot_z %s' % (rot_z))
             #~ rospy.loginfo('rot_w %s' % (rot_w))
 
+            self.counter_pub.publish(Float64(counter))
             self.justin_endpoint_pub.publish(cmd_msg)
             self.external_force_pub.publish(feedback_msg)
       finally:

@@ -7,7 +7,7 @@ from StringIO import StringIO
 from std_msgs.msg import Float64
 from geometry_msgs.msg import PoseStamped
 
-_struct_8d = struct.Struct("<8d")
+_struct_9d = struct.Struct("<9d")
 
 class TextColors:
   HEADER = '\033[95m'
@@ -29,7 +29,8 @@ class Send_udp_pose:
   def __init__(self):
     # Set-up publishers/subscribers
     rospy.Subscriber('/justin/ik_command', PoseStamped, self.ik_command_cb)
-    rospy.Subscriber('/reset',Float64, self.reset_cb)
+    rospy.Subscriber('/reset', Float64, self.reset_cb)
+    rospy.Subscriber('/counter', Float64, self.counter_cb)
     #~ rospy.Subscriber('/phantom/pose', PoseStamped, self.ik_command_cb)
     # Read all the parameters from the parameter server
     self.publish_frequency = self.read_parameter('~publish_frequency', 1000.0)
@@ -37,6 +38,7 @@ class Send_udp_pose:
     self.write_ip = self.read_parameter('~write_ip', '127.0.0.1')
     self.write_port = int(self.read_parameter('~write_port', 5052))
     self.reset_value = 0.0
+    self.counter_value = 0.0
 
     # Set up write socket
     self.write_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
@@ -45,8 +47,10 @@ class Send_udp_pose:
     
     
   def reset_cb(self, msg):
-	  
     self.reset_value = msg.data
+
+  def counter_cb(self, msg):
+    self.counter_value = msg.data
 
   def ik_command_cb(self, msg):
 
@@ -56,7 +60,7 @@ class Send_udp_pose:
 
         # Serialize cmd_msg
         file_str = StringIO()
-        self.double_serialize(self.reset_value,cmd_msg,file_str)
+        self.double_serialize(cmd_msg, file_str)
 
         #~ rospy.loginfo('Info to send %s' % (file_str.getvalue()))
         self.write_socket.sendto(file_str.getvalue(), (self.write_ip, self.write_port))
@@ -68,9 +72,9 @@ class Send_udp_pose:
 			rospy.logwarn('Connection refused')
 	
 
-  def double_serialize(self, reset, msg, buff):
+  def double_serialize(self, msg, buff):
     try:
-       buff.write(_struct_8d.pack(msg.pose.position.x, msg.pose.position.y, msg.pose.position.z, msg.pose.orientation.x, msg.pose.orientation.y, msg.pose.orientation.z, msg.pose.orientation.w, reset))
+       buff.write(_struct_9d.pack(msg.pose.position.x, msg.pose.position.y, msg.pose.position.z, msg.pose.orientation.x, msg.pose.orientation.y, msg.pose.orientation.z, msg.pose.orientation.w, self.reset_value, self.counter_value))
     except struct.error, se: self._check_types(se)
     except TypeError, te: self._check_types(te)
 
