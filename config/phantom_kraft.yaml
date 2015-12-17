@@ -5,9 +5,9 @@ units: mm
 # Workspace [width, depth, height] = [x, y, z]
 hysteresis: 3.0
 workspace:
-  width: 100.0
-  depth: 100.0
-  height: 100.0
+  width: 80.0
+  depth: 80.0
+  height: 80.0
   center: [0, 0, 0]
 # Position parameters
 reference_frame: world
@@ -27,19 +27,19 @@ vibration:
   duration: 0.3
   
 # Rotation parameter to synchronize rotation axis
-axes_arot_1: [-1, 0, 0]
-angle_arot_1: 1.570796
-axes_arot_2: [0, -1, 0]
-angle_arot_2: 0.0
 axes_arot_3: [-1, 0, 0]
 angle_arot_3: 0.0
+axes_arot_2: [0, -1, 0]
+angle_arot_2: 0.0
+axes_arot_1: [-1, 0, 0]
+angle_arot_1: 0.0
 
 # Rotation parameter to synchronize rotation movement
-axes_mrot_1: [1, 0, 0]
-angle_mrot_1: 1.570796
+axes_mrot_3: [1, 0, 0]
+angle_mrot_3: 0.0
 axes_mrot_2: [0, -1, 0]
 angle_mrot_2: 0.0
-axes_mrot_3: [-1, 0, 0]
-angle_mrot_3: 0.0
+axes_mrot_1: [-1, 0, 0]
+angle_mrot_1: 0.0
 
 #~ angle_rotation: 1.570796

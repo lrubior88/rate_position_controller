@@ -1,26 +1,32 @@
 
 <launch>
 	
-  <arg name="master_name" default="phantom"/>
+  <arg name="master_name" default="phantom_master"/>
   <arg name="slave_name" default="grips"/>
   <arg name="ref_frame" default="world"/>
   <arg name="mode_name" default="a"/>    <!-- Mode: a, b , c -->
   <arg name="rpy_offset" default="[0, 0, 0]"/>
   <arg name="rviz" default="true"/>
-  <arg name="publish_rate" default="1000.0"/>
-
   
-<!-- Phantom node -->
-  <node name="omni_state2" pkg="omni_common" type="omni_state2" output="screen"> 
-    <param name="omni_name" type="string" value="$(arg master_name)"/>
-    <param name="publish_rate" type="double" value="$(arg publish_rate)"/>
-<!--
-    <rosparam command="load" file="$(find rate_position_controller)/config/phantom_kraft.yaml" />
--->
+  <!-- Haptic device interface -->
+  <node name="haptic_device_interface" pkg="rate_position_controller" type="haptic_device_interface.py" output="screen"> 
+    <param name="device_name" type="string" value="$(arg master_name)"/>
+    <param name="read_ip" type="string" value="192.168.0.108"/>
+    <param name="write_ip" type="string" value="192.168.0.5"/>
+    <param name="read_port" type="int" value="5053"/>
+    <param name="write_port" type="int" value="5054"/>
   </node>
+  
+  <node name="send_udp_force" pkg="rate_position_controller" type="send_udp_force.py" output="screen"> 
+    <param name="device_name" type="string" value="$(arg master_name)"/>
+    <param name="write_ip" type="string" value="192.168.0.5"/>
+    <param name="write_port" type="int" value="5054"/>
+    <param name="publish_rate" type="double" value="1000.0"/>
+  </node>
+  
 <!-- Rate position controller -->
   <node name="rate_pos_controller" pkg="rate_position_controller" type="rate_pos_controller.py" output="screen">
-    <param name="publish_rate" type="double" value="$(arg publish_rate)"/>
+    <param name="publish_rate" type="double" value="1000"/>
     <param name="slave_name" type="string" value="$(arg slave_name)"/>
     <param name="master_name" type="string" value="$(arg master_name)"/>
     <param name="reference_frame" type="string" value="$(arg ref_frame)"/>
@@ -47,14 +53,10 @@
     <param name="mode_name" type="string" value="$(arg mode_name)"/>
     <rosparam command="load" file="$(find rate_position_controller)/config/phantom_kraft.yaml" />
   </node>
-
-<!--
-  <include file="$(find rate_position_controller)/launch/justin_receive_pos.launch">
-  </include>
--->
   
   <!-- Show in Rviz -->
   <group if="$(arg rviz)">
     <node name="rviz" pkg="rviz" type="rviz" output="screen" args="-d $(find grips_teleop)/config/cartesian_controller.rviz"/>
   </group>
+  
 </launch>
