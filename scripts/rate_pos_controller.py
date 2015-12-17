@@ -206,8 +206,12 @@ class RatePositionController:
     if not np.allclose(np.zeros(3), self.master_pos, atol=self.hysteresis):
       self.sm_control_pub.publish(4.0)
       ### <FORCE COUPLED>
+      #~ rospy.logwarn('pose z [%f]' % (self.master_pos[2]))
       self.force_feedback = (self.k_center * self.master_pos + self.b_center * self.master_vel) * -1.0
-
+      #~ rospy.logwarn('Force x [%f]' % (self.force_feedback[0]))
+      #~ rospy.logwarn('Force y [%f]' % (self.force_feedback[1]))
+      #~ rospy.logwarn('Force z [%f]' % (self.force_feedback[2]))
+      #~ rospy.logwarn('------------------------------------')
       return 'stay'
 
     else:
@@ -391,7 +395,7 @@ class RatePositionController:
   ### <FORCE COUPLED>
   def send_feedback(self):
     feedback_msg = OmniFeedback()
-    force = self.force_feedback 
+    force = self.force_feedback
     pos = self.change_axes(self.center_pos)
     feedback_msg.force = Vector3(*force)
     feedback_msg.position = Vector3(*pos)
@@ -406,23 +410,47 @@ class RatePositionController:
     self.master_vel = self.change_axes(vel)
     
     real_rot = np.array([msg.pose.orientation.x, msg.pose.orientation.y, msg.pose.orientation.z, msg.pose.orientation.w])
-    # Synchronize rotation axis
-    q_a1 = tr.quaternion_about_axis(self.angle_arot_1, self.axes_arot_1)
-    aux_arot_1 = tr.quaternion_multiply(real_rot, q_a1)
-    q_a2 = tr.quaternion_about_axis(self.angle_arot_2, self.axes_arot_2)
-    aux_arot_2 = tr.quaternion_multiply(aux_arot_1, q_a2)
-    q_a3 = tr.quaternion_about_axis(self.angle_arot_3, self.axes_arot_3)
-    aux_arot_3 = tr.quaternion_multiply(aux_arot_2, q_a3)
 
+    #~ # Synchronize rotation axis
+    if (self.angle_arot_1 == 0.0):
+        aux_arot_1 = real_rot
+    else:
+        q_a1 = tr.quaternion_about_axis(self.angle_arot_1, self.axes_arot_1)
+        aux_arot_1 = tr.quaternion_multiply(real_rot, q_a1)
+    
+    if (self.angle_arot_2 == 0.0):
+        aux_arot_2 = aux_arot_1
+    else:
+        q_a2 = tr.quaternion_about_axis(self.angle_arot_2, self.axes_arot_2)
+        aux_arot_2 = tr.quaternion_multiply(aux_arot_1, q_a2)
+
+    if (self.angle_arot_3 == 0.0):
+        aux_arot_3 = aux_arot_2
+    else:
+        q_a3 = tr.quaternion_about_axis(self.angle_arot_3, self.axes_arot_3)
+        aux_arot_3 = tr.quaternion_multiply(aux_arot_2, q_a3)
+        
     # Synchronize rotation movement
-    q_m1 = tr.quaternion_about_axis(self.angle_mrot_1, self.axes_mrot_1)
-    aux_mrot_1 = tr.quaternion_multiply(q_m1, aux_arot_3)
-    q_m2 = tr.quaternion_about_axis(self.angle_mrot_2, self.axes_mrot_2)
-    aux_mrot_2 = tr.quaternion_multiply(q_m2, aux_mrot_1)
-    q_m3 = tr.quaternion_about_axis(self.angle_mrot_3, self.axes_mrot_3)
-    aux_mrot_3 = tr.quaternion_multiply(q_m3, aux_mrot_2)
+    if (self.angle_mrot_1 == 0.0):
+        aux_mrot_1 = aux_arot_3
+    else:
+        q_m1 = tr.quaternion_about_axis(self.angle_mrot_1, self.axes_mrot_1)
+        aux_mrot_1 = tr.quaternion_multiply(q_m1, aux_arot_3)
+    
+    if (self.angle_mrot_2 == 0.0):
+        aux_mrot_2 = aux_mrot_1
+    else:
+        q_m2 = tr.quaternion_about_axis(self.angle_mrot_2, self.axes_mrot_2)
+        aux_mrot_2 = tr.quaternion_multiply(q_m2, aux_mrot_1)
+
+    if (self.angle_mrot_3 == 0.0):
+        aux_mrot_3 = aux_mrot_2
+    else:
+        q_m3 = tr.quaternion_about_axis(self.angle_mrot_3, self.axes_mrot_3)
+        aux_mrot_3 = tr.quaternion_multiply(q_m3, aux_mrot_2)    
     
     self.master_rot = aux_mrot_3
+
 
     #Normalize velocitity
     self.master_dir = self.normalize_vector(self.master_vel)
